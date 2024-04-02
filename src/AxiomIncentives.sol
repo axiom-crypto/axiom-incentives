@@ -27,24 +27,26 @@ abstract contract AxiomIncentives is AxiomV2Client {
 
     /// @notice Process a claim for incentives.
     /// @param  querySchema The query schema of the claim.
+    /// @param  caller The address of the caller.
     /// @param  startClaimId The ID of the first claim in the claim batch.
     /// @param  endClaimId The ID of the last claim in the claim batch.
     /// @param  incentiveId The ID of the claimer.
     /// @param  totalValue The total value of the claim batch.
     function _processClaim(
         bytes32 querySchema,
+        address caller,
         uint256 startClaimId,
         uint256 endClaimId,
         uint256 incentiveId,
         uint256 totalValue
     ) internal {
-        _validateClaim(querySchema, startClaimId, endClaimId, incentiveId, totalValue);
+        _validateClaim(querySchema, caller, startClaimId, endClaimId, incentiveId, totalValue);
 
         // enforce no double claims by enforcing monotonicity of claimId
         require(lastClaimedId[querySchema][incentiveId] < startClaimId, "Already claimed");
         lastClaimedId[querySchema][incentiveId] = endClaimId;
 
-        _sendClaimRewards(querySchema, startClaimId, endClaimId, incentiveId, totalValue);
+        _sendClaimRewards(querySchema, caller, startClaimId, endClaimId, incentiveId, totalValue);
     }
 
     /// @inheritdoc AxiomV2Client
@@ -63,7 +65,7 @@ abstract contract AxiomIncentives is AxiomV2Client {
     /// @inheritdoc AxiomV2Client
     function _axiomV2Callback(
         uint64, // sourceChainId,
-        address, // caller,
+        address caller,
         bytes32 querySchema,
         uint256, // queryId,
         bytes32[] calldata axiomResults,
@@ -74,17 +76,19 @@ abstract contract AxiomIncentives is AxiomV2Client {
         uint256 incentiveId = uint256(axiomResults[2]);
         uint256 totalValue = uint256(axiomResults[3]);
 
-        _processClaim(querySchema, startClaimId, endClaimId, incentiveId, totalValue);
+        _processClaim(querySchema, caller, startClaimId, endClaimId, incentiveId, totalValue);
     }
 
     /// @notice Validate a claim for incentives.  Should revert if the claim is not valid.
     /// @param  querySchema The query schema of the claim.
+    /// @param  caller The address of the caller.
     /// @param  startClaimId The ID of the first claim in the claim batch.
     /// @param  endClaimId The ID of the last claim in the claim batch.
     /// @param  incentiveId The ID of the claimer.
     /// @param  totalValue The total value of the claim batch.
     function _validateClaim(
         bytes32 querySchema,
+        address caller,
         uint256 startClaimId,
         uint256 endClaimId,
         uint256 incentiveId,
@@ -93,12 +97,14 @@ abstract contract AxiomIncentives is AxiomV2Client {
 
     /// @notice Send rewards for a claim for incentives.
     /// @param  querySchema The query schema of the claim.
+    /// @param  caller The address of the caller.
     /// @param  startClaimId The ID of the first claim in the claim batch.
     /// @param  endClaimId The ID of the last claim in the claim batch.
     /// @param  incentiveId The ID of the claimer.
     /// @param  totalValue The total value of the claim batch.
     function _sendClaimRewards(
         bytes32 querySchema,
+        address caller,
         uint256 startClaimId,
         uint256 endClaimId,
         uint256 incentiveId,
